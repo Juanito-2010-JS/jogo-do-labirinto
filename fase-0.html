@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Labirinto - Primeira Fase</title>
+    <style>
+        /* Texturas */
+
+        /* Textura do fundo */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2aa6ed;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        /* Localização do labirinto */
+        #maze-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Textura das bordas e do vazio do labirinto */
+        #maze {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(20, 40px);
+            grid-template-rows: repeat(20, 40px);
+            gap: 0;
+            border: 2px solid #333;
+            background-color: #ccc;
+        }
+        /* Tamanho da célula/Quadradinho */
+        .cell {
+            width: 40px;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        /* Textura das paredes do labirinto */
+        .wall {
+            background-color: #333;
+        }
+        /* Tamanho do inimigo e do jogador */
+        .player, .enemy {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            transition: left 0.1s, top 0.1s;
+        }
+        /* Textura do jogador */
+        .player {
+            background-image: url('https://em-content.zobj.net/source/emojidex/59/shopping-trolley_1f6d2.png');
+            background-size: cover;
+        }
+        /* Textura do inimigo */
+        .enemy {
+            background-image: url('https://img.lovepik.com/png/20231117/cartoon-angry-old-man-head-vector-clipart-sticker_619713_wh860.png');
+            background-size: cover;
+        }
+        /* Textura do final */
+        .finish {
+            background-color: #0f0;
+        }
+        /* Textura do começo */
+        .start {
+            background-color: rgb(0, 0, 0);
+        }
+        /* Botão de pausa */
+        #pause-button {
+            margin: 20px;
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: #f00;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        #pause-button:hover {
+            background-color: #c00;
+        }
+    </style>
+</head>
+<body>
+    <button id="pause-button">Pausar</button>
+    <div id="maze-container">
+        <div id="maze"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mazeWidth = 20; // largura do labirinto em células
+            const mazeHeight = 20; // altura do labirinto em células
+            const maze = document.getElementById('maze');
+            const pauseButton = document.getElementById('pause-button');
+            let isPaused = false;
+            let enemyInterval;
+
+            // Definição do labirinto (exemplo simples)
+            const mazeMap = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ];
+
+            const finishPosition = { x: 1, y: 10 };
+            let playerPosition = { x: 1, y: 16 };
+            let enemyPosition = { x: 18, y: 18 };
+
+            const player = document.createElement('div');
+            player.className = 'player';
+            movePlayer(); // movePlayer inicial para definir a posição inicial do jogador
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            moveEnemy(); // moveEnemy inicial para definir a posição inicial do inimigo
+
+            maze.appendChild(player);
+            maze.appendChild(enemy);
+
+            // Criação do labirinto visualmente
+            for (let y = 0; y < mazeHeight; y++) {
+                for (let x = 0; x < mazeWidth; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (mazeMap[y][x] === 1) {
+                        cell.classList.add('wall');
+                    }
+                    if (x === finishPosition.x && y === finishPosition.y) {
+                        cell.classList.add('finish');
+                    }
+                    if (x === startPosition.x && y === startPosition.y) {
+                        cell.classList.add('start');
+                    }
+                    maze.appendChild(cell);
+                }
+            }
+
+            function movePlayer() {
+                player.style.left = playerPosition.x * 40 + 'px';
+                player.style.top = playerPosition.y * 40 + 'px';
+            }
+
+            function moveEnemy() {
+                enemy.style.left = enemyPosition.x * 40 + 'px';
+                enemy.style.top = enemyPosition.y * 40 + 'px';
+            }
+
+            function moveEnemyTowardsPlayer() {
+                if (isPaused) return;
+
+                const directions = [
+                    { dx: 1, dy: 0 },
+                    { dx: -1, dy: 0 },
+                    { dx: 0, dy: 1 },
+                    { dx: 0, dy: -1 }
+                ];
+
+                let bestMove = null;
+                let minDistance = Infinity;
+
+                for (const direction of directions) {
+                    const newX = enemyPosition.x + direction.dx;
+                    const newY = enemyPosition.y + direction.dy;
+
+                    if (mazeMap[newY][newX] === 0) {
+                        const distance = Math.abs(playerPosition.x - newX) + Math.abs(playerPosition.y - newY);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            bestMove = { x: newX, y: newY };
+                        }
+                    }
+                }
+
+                if (bestMove) {
+                    enemyPosition = bestMove;
+                }
+
+                moveEnemy();
+
+                // Verifica se o inimigo alcançou o jogador
+                if (enemyPosition.x === playerPosition.x && enemyPosition.y === playerPosition.y) {
+                    alert('Game Over! O inimigo te pegou.');
+                    window.location.href = 'fase-0.html';
+                }
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (isPaused) return;
+
+                const key = event.key;
+                let newX = playerPosition.x;
+                let newY = playerPosition.y;
+
+                if (key === 'ArrowUp') {
+                    newY--;
+                } else if (key === 'ArrowDown') {
+                    newY++;
+                } else if (key === 'ArrowLeft') {
+                    newX--;
+                } else if (key === 'ArrowRight') {
+                    newX++;
+                }
+
+                // Verifica se a nova posição é válida (não colide com paredes)
+                if (mazeMap[newY][newX] === 0) {
+                    playerPosition.x = newX;
+                    playerPosition.y = newY;
+                    movePlayer();
+                }
+
+                // Verifica se o jogador chegou ao final
+                if (playerPosition.x === finishPosition.x && playerPosition.y === finishPosition.y) {
+                    setTimeout(function() {
+                        alert('Parabéns! Você completou a primeira fase do labirinto!');
+                        window.location.href = 'fase-0.html'; // Substitua pelo nome do próximo arquivo HTML
+                    }, 100);
+                }
+            });
+
+            function startEnemyMovement() {
+                enemyInterval = setInterval(moveEnemyTowardsPlayer, 100);
+            }
+
+            function stopEnemyMovement() {
+                clearInterval(enemyInterval);
+            }
+
+            pauseButton.addEventListener('click', function() {
+                isPaused = !isPaused;
+                pauseButton.textContent = isPaused ? 'Retomar' : 'Pausar';
+
+                if (isPaused) {
+                    stopEnemyMovement();
+                }
+                 else {
+                    startEnemyMovement();
+                }
+            });
+
+             //Inicia o movimento do inimigo
+            startEnemyMovement();
+       });
+    </script>
+</body>
+</html>Feito por João Pedro & Pedro!

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Labirinto - Primeira Fase</title>
+    <style>
+        /* Texturas */
+
+        /* Textura do fundo */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2aa6ed;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+        }
+        /* Localização do labirinto */
+        #maze-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Textura das bordas e do vazio do labirinto */
+        #maze {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
+            gap: 0;
+            border: 2px solid #333;
+            background-color: #ccc;
+        }
+        /* Tamanho da celula/Quadradinho */
+        .cell {
+            width: 40px;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        /* Textura das paredes do labirinto */
+        .wall {
+            background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSK1Ei5Y3fIDnpfSH8NkocSOHoc-CkLmN3RUQ&s');
+            background-size: cover;
+        }
+        /* Tamanho do inimigo e do jogador */
+        .player, .enemy {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            transition: left 0.1s, top 0.1s;
+        }
+        /* Textura do jogador */
+        .player {
+            background-image: url('https://em-content.zobj.net/source/emojidex/59/shopping-trolley_1f6d2.png');
+            background-size: cover;
+        }
+        /* Textura da inimigo */
+        .enemy {
+            background-image: url('https://img.lovepik.com/png/20231117/cartoon-angry-old-man-head-vector-clipart-sticker_619713_wh860.png');
+            background-size: cover;
+        }
+        /* Textura do final */
+        .finish {
+            background-color: #0f0;
+        }
+        /* Textura do começo */
+        .start {
+            background-color: rgb(0, 0, 0);
+        }
+        /* Estilo do temporizador */
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="maze-container">
+        <div id="maze"></div>
+    </div>
+    <div id="timer">00:00</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mazeWidth = 10; // largura do labirinto em células
+            const mazeHeight = 10; // altura do labirinto em células
+
+            const maze = document.getElementById('maze');
+
+            // Definição do labirinto (exemplo simples)
+            const mazeMap = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 1, 0, 0, 1, 1, 0, 1],
+                [1, 1, 0, 1, 1, 0, 1, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0, 1, 0, 1, 1],
+                [1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+                [1, 0, 0, 0, 0, 1, 0, 0, 1, 1],
+                [1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+                [1, 0, 1, 0, 0, 0, 1, 0, 1, 1],
+                [1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ];
+
+            const startPosition = {x: 1, y: 1}; // posição inicial do labirinto
+
+            const finishPosition = { x: 8, y: 1 }; // posição final do labirinto
+
+            let playerPosition = { x: 1, y: 1 }; // posição inicial do jogador
+            const player = document.createElement('div');
+            player.className = 'player';
+            movePlayer();
+
+            let enemyPosition = { x: -1000, y: 12 }; // posição inicial do inimigo
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            moveEnemy();
+
+            let lastEnemyPosition = { x: enemyPosition.x, y: enemyPosition.y };
+
+            let isPaused = false; // estado de pausa do jogo
+
+            maze.appendChild(player);
+            maze.appendChild(enemy);
+
+            // Criação do labirinto visualmente
+            for (let y = 0; y < mazeHeight; y++) {
+                for (let x = 0; x < mazeWidth; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (mazeMap[y][x] === 1) {
+                        cell.classList.add('wall');
+                    }
+                    if (x === finishPosition.x && y === finishPosition.y) {
+                        cell.classList.add('finish');
+                    }
+                    if (x === startPosition.x && y === startPosition.y) {
+                        cell.classList.add('start');
+                    }
+                    maze.appendChild(cell);
+                }
+            }
+
+            function movePlayer() {
+                player.style.left = playerPosition.x * 40 + 'px';
+                player.style.top = playerPosition.y * 40 + 'px';
+            }
+
+            function moveEnemy() {
+                enemy.style.left = enemyPosition.x * 40 + 'px';
+                enemy.style.top = enemyPosition.y * 40 + 'px';
+            }
+
+            function moveEnemyTowardsPlayer() {
+                if (isPaused) return; // não move o inimigo se o jogo estiver pausado
+
+                const directions = [
+                    { dx: 1, dy: 0 },
+                    { dx: -1, dy: 0 },
+                    { dx: 0, dy: 1 },
+                    { dx: 0, dy: -1 }
+                ];
+
+                let bestMove = null;
+                let minDistance = Infinity;
+
+                for (const direction of directions) {
+                    const newX = enemyPosition.x + direction.dx;
+                    const newY = enemyPosition.y + direction.dy;
+
+                    if (mazeMap[newY][newX] === 0 && !(newX === lastEnemyPosition.x && newY === lastEnemyPosition.y)) {
+                        const distance = Math.abs(playerPosition.x - newX) + Math.abs(playerPosition.y - newY);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            bestMove = { x: newX, y: newY };
+                        }
+                    }
+                }
+
+                if (bestMove) {
+                    lastEnemyPosition = { ...enemyPosition };
+                    enemyPosition = bestMove;
+                }
+
+                moveEnemy();
+
+                // Verifica se o inimigo alcançou o jogador
+                if (enemyPosition.x === playerPosition.x && enemyPosition.y === playerPosition.y) {
+                    alert('Game Over! O inimigo te pegou.');
+                    window.location.href = 'game-over.html';
+                }
+            }
+
+            document.addEventListener('keydown', function(event) {
+                const key = event.key;
+
+                if (key === 'Escape' || key === 'escape') {
+                  
+                    isPaused = !isPaused; // alterna o estado de pausa
+                    return;
+                }
+
+                if (isPaused) return; // não move o jogador se o jogo estiver pausado
+
+                let newX = playerPosition.x;
+                let newY = playerPosition.y;
+
+                if (key === 'ArrowUp') {
+                    newY--;
+                } else if (key === 'ArrowDown') {
+                    newY++;
+                } else if (key === 'ArrowLeft') {
+                    newX--;
+                } else if (key === 'ArrowRight') {
+                    newX++;
+                }
+
+                // Verifica se a nova posição é válida (não colide com paredes)
+                if (mazeMap[newY][newX] === 0) {
+                    playerPosition.x = newX;
+                    playerPosition.y = newY;
+                    movePlayer();
+                }
+
+                // Verifica se o jogador chegou ao final
+                if (playerPosition.x === finishPosition.x && playerPosition.y === finishPosition.y) {
+                    setTimeout(function() {
+                        alert('Parabéns! Você completou a primeira fase do labirinto!');
+                        // Aqui você pode redirecionar para a próxima fase
+                        window.location.href = 'labirinto-fase-2.html'; // Substitua pelo nome do próximo arquivo HTML
+                    }, 100);
+                }
+            });
+
+            // Move o inimigo a cada 250ms
+            setInterval(moveEnemyTowardsPlayer, 1);
+
+            // Temporizador
+            const timerElement = document.getElementById('timer');
+            let startTime = Date.now();
+
+            function updateTimer() {
+                if (isPaused) return; // não atualiza o temporizador se o jogo estiver pausado
+                const elapsedTime = Date.now() - startTime;
+                const minutes = Math.floor(elapsedTime / 60000);
+                const seconds = Math.floor((elapsedTime % 60000) / 1000);
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            setInterval(updateTimer, 1000); // Atualiza o temporizador a cada segundo
+        });
+    </script>
+</body>
+</html>
